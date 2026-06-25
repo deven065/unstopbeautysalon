@@ -11,6 +11,8 @@ import {
   useState,
 } from "react";
 import { animate, stagger, type JSAnimation } from "animejs";
+import type { AuthUser } from "@/app/lib/auth";
+import type { Salon, ServiceCategory } from "@/app/lib/marketplace-data";
 
 // The city can be changed here if the buildathon entry pivots to another market.
 const CITY_NAME = "Mumbai";
@@ -24,43 +26,6 @@ const imageAssets = {
   aiMatch: "/images/salon-ai-match-professional.webp",
   booking: "/images/salon-booking-professional.webp",
 };
-
-// Service categories power the hero search, category cards, and listing filters.
-const serviceCategories = [
-  {
-    name: "Hair Studio",
-    slug: "Hair Studio",
-    detail: "Color, cuts, spa and care routines",
-    price: "from Rs. 699",
-    tone: "bg-[#fce4ec]",
-  },
-  {
-    name: "Bridal Beauty",
-    slug: "Bridal Beauty",
-    detail: "Trials, makeup, draping and packages",
-    price: "from Rs. 4,999",
-    tone: "bg-[#f9dfd0]",
-  },
-  {
-    name: "Skin & Facial",
-    slug: "Skin & Facial",
-    detail: "Glow facials, cleanups and skin care",
-    price: "from Rs. 899",
-    tone: "bg-[#dff3ed]",
-  },
-  {
-    name: "Nails & Spa",
-    slug: "Nails & Spa",
-    detail: "Gel nails, manicure and spa therapy",
-    price: "from Rs. 599",
-    tone: "bg-[#e8e1f5]",
-  },
-];
-
-const serviceOptions = [
-  { value: "Any service", label: "Any service" },
-  ...serviceCategories.map((category) => ({ value: category.slug, label: category.slug })),
-];
 
 const budgetOptions = [
   { value: "1000", label: "Under Rs. 1,000" },
@@ -115,1157 +80,6 @@ const needPresets = [
   },
 ];
 
-// These listings act as a realistic MVP inventory for the marketplace.
-const salons = [
-  {
-    id: "aster-glow",
-    name: "Aster Glow Studio",
-    area: "Bandra West",
-    coords: { lat: 19.0596, lng: 72.8295 },
-    categories: ["Bridal Beauty", "Hair Studio", "Skin & Facial", "Nails & Spa"],
-    rating: 4.9,
-    reviews: 412,
-    basePrice: 1299,
-    distanceKm: 1.8,
-    responseMins: 12,
-    hygieneScore: 98,
-    homeVisit: false,
-    bridalReady: true,
-    luxury: true,
-    slots: ["10:30 AM", "12:45 PM", "4:30 PM", "6:00 PM"],
-    tags: ["AI Match", "Luxury color", "Hygiene verified"],
-    specialty: "Luxury hair color, skin prep and glow treatments.",
-  },
-  {
-    id: "mira-bridal",
-    name: "Mira Bridal Bar",
-    area: "Juhu",
-    coords: { lat: 19.1075, lng: 72.8263 },
-    categories: ["Bridal Beauty", "Hair Studio", "Skin & Facial"],
-    rating: 4.8,
-    reviews: 335,
-    basePrice: 5499,
-    distanceKm: 4.2,
-    responseMins: 18,
-    hygieneScore: 96,
-    homeVisit: true,
-    bridalReady: true,
-    luxury: true,
-    slots: ["11:00 AM", "2:30 PM", "7:15 PM"],
-    tags: ["Bride Pick", "Trial available", "Home visit"],
-    specialty: "Bridal makeup, draping, trials and pre-wedding care.",
-  },
-  {
-    id: "mint-home",
-    name: "Mint Home Salon",
-    area: "Powai",
-    coords: { lat: 19.1176, lng: 72.906 },
-    categories: ["Skin & Facial", "Nails & Spa"],
-    rating: 4.7,
-    reviews: 286,
-    basePrice: 899,
-    distanceKm: 7.4,
-    responseMins: 9,
-    hygieneScore: 94,
-    homeVisit: true,
-    bridalReady: false,
-    luxury: false,
-    slots: ["9:30 AM", "1:00 PM", "5:45 PM", "8:00 PM"],
-    tags: ["Home Visit", "Fast response", "Value pick"],
-    specialty: "At-home facials, waxing, manicure and pedicure.",
-  },
-  {
-    id: "opal-nails",
-    name: "Opal Nail Atelier",
-    area: "Lower Parel",
-    coords: { lat: 18.993, lng: 72.8304 },
-    categories: ["Nails & Spa"],
-    rating: 4.6,
-    reviews: 198,
-    basePrice: 749,
-    distanceKm: 3.1,
-    responseMins: 24,
-    hygieneScore: 95,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: true,
-    slots: ["12:15 PM", "3:00 PM", "5:30 PM"],
-    tags: ["Gel nails", "Spa chairs", "Premium finish"],
-    specialty: "Gel extensions, nail art, foot spa and hand care.",
-  },
-  {
-    id: "saffron-men",
-    name: "Saffron Grooming Co.",
-    area: "Andheri East",
-    coords: { lat: 19.1155, lng: 72.8727 },
-    categories: ["Hair Studio", "Skin & Facial"],
-    rating: 4.5,
-    reviews: 221,
-    basePrice: 699,
-    distanceKm: 6.5,
-    responseMins: 15,
-    hygieneScore: 92,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: false,
-    slots: ["10:00 AM", "1:45 PM", "6:30 PM"],
-    tags: ["Grooming", "Express facial", "Budget friendly"],
-    specialty: "Haircuts, beard styling, detan and express facials.",
-  },
-  {
-    id: "pearl-luxe",
-    name: "Pearl Luxe Salon",
-    area: "Colaba",
-    coords: { lat: 18.9067, lng: 72.8147 },
-    categories: ["Bridal Beauty", "Hair Studio", "Nails & Spa"],
-    rating: 4.9,
-    reviews: 501,
-    basePrice: 2499,
-    distanceKm: 8.1,
-    responseMins: 28,
-    hygieneScore: 99,
-    homeVisit: true,
-    bridalReady: true,
-    luxury: true,
-    slots: ["2:00 PM", "4:00 PM"],
-    tags: ["Celebrity stylists", "Luxury suite", "Group booking"],
-    specialty: "Premium bridal, party styling and luxury nail care.",
-  },
-  {
-    id: "fort-rose",
-    name: "Fort Rose Beauty House",
-    area: "Fort",
-    coords: { lat: 18.9338, lng: 72.8346 },
-    categories: ["Hair Studio", "Skin & Facial"],
-    rating: 4.6,
-    reviews: 184,
-    basePrice: 999,
-    distanceKm: 9.4,
-    responseMins: 20,
-    hygieneScore: 94,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: false,
-    slots: ["10:15 AM", "1:30 PM", "5:15 PM"],
-    tags: ["Office ready", "Cleanup", "Hair care"],
-    specialty: "Workday hair styling, glow cleanups and express facials.",
-  },
-  {
-    id: "churchgate-chic",
-    name: "Churchgate Chic Studio",
-    area: "Churchgate",
-    coords: { lat: 18.9352, lng: 72.8271 },
-    categories: ["Hair Studio", "Nails & Spa"],
-    rating: 4.7,
-    reviews: 246,
-    basePrice: 1199,
-    distanceKm: 9.1,
-    responseMins: 17,
-    hygieneScore: 95,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: true,
-    slots: ["11:30 AM", "3:15 PM", "6:45 PM"],
-    tags: ["Blow dry", "Gel polish", "Premium tools"],
-    specialty: "Hair styling, nail polish, party-ready blowouts and spa care.",
-  },
-  {
-    id: "marine-glow",
-    name: "Marine Glow Lounge",
-    area: "Marine Lines",
-    coords: { lat: 18.944, lng: 72.8236 },
-    categories: ["Skin & Facial", "Bridal Beauty"],
-    rating: 4.8,
-    reviews: 302,
-    basePrice: 1799,
-    distanceKm: 8.7,
-    responseMins: 16,
-    hygieneScore: 97,
-    homeVisit: true,
-    bridalReady: true,
-    luxury: true,
-    slots: ["10:45 AM", "2:15 PM", "7:00 PM"],
-    tags: ["Glow facial", "Bride prep", "Home visit"],
-    specialty: "Pre-event skin prep, bridal glow routines and home facials.",
-  },
-  {
-    id: "tardeo-tone",
-    name: "Tardeo Tone Salon",
-    area: "Tardeo",
-    coords: { lat: 18.9676, lng: 72.8141 },
-    categories: ["Hair Studio", "Skin & Facial"],
-    rating: 4.5,
-    reviews: 168,
-    basePrice: 899,
-    distanceKm: 7.3,
-    responseMins: 22,
-    hygieneScore: 93,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: false,
-    slots: ["9:45 AM", "12:30 PM", "4:45 PM"],
-    tags: ["Detan", "Hair spa", "Value pick"],
-    specialty: "Hair spa, detan, cleanups and everyday grooming packages.",
-  },
-  {
-    id: "mahalaxmi-muse",
-    name: "Mahalaxmi Muse",
-    area: "Mahalaxmi",
-    coords: { lat: 18.9822, lng: 72.8249 },
-    categories: ["Bridal Beauty", "Hair Studio", "Nails & Spa"],
-    rating: 4.8,
-    reviews: 356,
-    basePrice: 3299,
-    distanceKm: 5.9,
-    responseMins: 18,
-    hygieneScore: 97,
-    homeVisit: true,
-    bridalReady: true,
-    luxury: true,
-    slots: ["11:15 AM", "3:45 PM", "6:30 PM"],
-    tags: ["Bride trial", "Party styling", "Premium suite"],
-    specialty: "Bridal trials, luxury styling, makeup and nail packages.",
-  },
-  {
-    id: "worli-waves",
-    name: "Worli Waves Salon",
-    area: "Worli",
-    coords: { lat: 19.0176, lng: 72.8162 },
-    categories: ["Hair Studio", "Nails & Spa"],
-    rating: 4.6,
-    reviews: 211,
-    basePrice: 1099,
-    distanceKm: 4.5,
-    responseMins: 19,
-    hygieneScore: 94,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: true,
-    slots: ["10:00 AM", "2:00 PM", "5:30 PM"],
-    tags: ["Hair color", "Foot spa", "Sea link area"],
-    specialty: "Hair color, nail care, foot spa and weekend styling.",
-  },
-  {
-    id: "prabhadevi-prism",
-    name: "Prabhadevi Prism Beauty",
-    area: "Prabhadevi",
-    coords: { lat: 19.0166, lng: 72.8295 },
-    categories: ["Skin & Facial", "Bridal Beauty"],
-    rating: 4.7,
-    reviews: 257,
-    basePrice: 1499,
-    distanceKm: 4.9,
-    responseMins: 14,
-    hygieneScore: 96,
-    homeVisit: true,
-    bridalReady: true,
-    luxury: false,
-    slots: ["9:30 AM", "1:15 PM", "6:15 PM"],
-    tags: ["Home facial", "Bride care", "Fast response"],
-    specialty: "Bridal skin prep, cleanups, facials and home beauty care.",
-  },
-  {
-    id: "dadar-dazzle",
-    name: "Dadar Dazzle Studio",
-    area: "Dadar West",
-    coords: { lat: 19.019, lng: 72.8425 },
-    categories: ["Hair Studio", "Skin & Facial", "Nails & Spa"],
-    rating: 4.5,
-    reviews: 319,
-    basePrice: 799,
-    distanceKm: 5.6,
-    responseMins: 13,
-    hygieneScore: 93,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: false,
-    slots: ["10:30 AM", "12:45 PM", "8:00 PM"],
-    tags: ["Budget friendly", "Haircut", "Manicure"],
-    specialty: "Everyday haircuts, facials, waxing, manicure and pedicure.",
-  },
-  {
-    id: "matunga-mint",
-    name: "Matunga Mint Salon",
-    area: "Matunga",
-    coords: { lat: 19.0269, lng: 72.8553 },
-    categories: ["Skin & Facial", "Nails & Spa"],
-    rating: 4.6,
-    reviews: 176,
-    basePrice: 899,
-    distanceKm: 6.2,
-    responseMins: 16,
-    hygieneScore: 95,
-    homeVisit: true,
-    bridalReady: false,
-    luxury: false,
-    slots: ["11:00 AM", "2:45 PM", "5:45 PM"],
-    tags: ["Student friendly", "Home visit", "Facial"],
-    specialty: "Home-friendly skin care, waxing, nails and simple spa routines.",
-  },
-  {
-    id: "sion-silk",
-    name: "Sion Silk Beauty Co.",
-    area: "Sion",
-    coords: { lat: 19.039, lng: 72.8619 },
-    categories: ["Hair Studio", "Bridal Beauty"],
-    rating: 4.4,
-    reviews: 142,
-    basePrice: 999,
-    distanceKm: 7.1,
-    responseMins: 24,
-    hygieneScore: 92,
-    homeVisit: false,
-    bridalReady: true,
-    luxury: false,
-    slots: ["10:00 AM", "1:30 PM", "4:00 PM"],
-    tags: ["Saree draping", "Hair care", "Bride basic"],
-    specialty: "Hair care, simple bridal makeup, draping and party looks.",
-  },
-  {
-    id: "chembur-canvas",
-    name: "Chembur Canvas Salon",
-    area: "Chembur",
-    coords: { lat: 19.0522, lng: 72.9005 },
-    categories: ["Hair Studio", "Skin & Facial", "Nails & Spa"],
-    rating: 4.7,
-    reviews: 288,
-    basePrice: 1099,
-    distanceKm: 9.8,
-    responseMins: 15,
-    hygieneScore: 96,
-    homeVisit: true,
-    bridalReady: false,
-    luxury: true,
-    slots: ["9:45 AM", "3:00 PM", "7:15 PM"],
-    tags: ["Home visit", "Hair spa", "Gel nails"],
-    specialty: "Hair spa, skin care, gel nails and at-home grooming.",
-  },
-  {
-    id: "ghatkopar-gloss",
-    name: "Ghatkopar Gloss Room",
-    area: "Ghatkopar East",
-    coords: { lat: 19.079, lng: 72.908 },
-    categories: ["Skin & Facial", "Bridal Beauty", "Nails & Spa"],
-    rating: 4.8,
-    reviews: 334,
-    basePrice: 1399,
-    distanceKm: 10.2,
-    responseMins: 12,
-    hygieneScore: 97,
-    homeVisit: true,
-    bridalReady: true,
-    luxury: false,
-    slots: ["10:15 AM", "2:30 PM", "6:45 PM"],
-    tags: ["AI Match", "Home visit", "Bride care"],
-    specialty: "Skin treatments, bridal care, nails and quick home service.",
-  },
-  {
-    id: "vikhroli-velvet",
-    name: "Vikhroli Velvet Studio",
-    area: "Vikhroli",
-    coords: { lat: 19.1115, lng: 72.928 },
-    categories: ["Hair Studio", "Skin & Facial"],
-    rating: 4.4,
-    reviews: 125,
-    basePrice: 749,
-    distanceKm: 12.4,
-    responseMins: 21,
-    hygieneScore: 92,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: false,
-    slots: ["9:30 AM", "12:00 PM", "6:00 PM"],
-    tags: ["Express cut", "Cleanup", "Value pick"],
-    specialty: "Haircuts, facials, detan and express grooming routines.",
-  },
-  {
-    id: "kanjurmarg-kaya",
-    name: "Kanjurmarg Kaya Salon",
-    area: "Kanjurmarg",
-    coords: { lat: 19.1293, lng: 72.9322 },
-    categories: ["Skin & Facial", "Nails & Spa"],
-    rating: 4.5,
-    reviews: 153,
-    basePrice: 849,
-    distanceKm: 13.5,
-    responseMins: 20,
-    hygieneScore: 93,
-    homeVisit: true,
-    bridalReady: false,
-    luxury: false,
-    slots: ["10:45 AM", "1:45 PM", "5:30 PM"],
-    tags: ["Home facial", "Waxing", "Pedicure"],
-    specialty: "Home facials, waxing, pedicure and practical beauty care.",
-  },
-  {
-    id: "bhandup-bloom",
-    name: "Bhandup Bloom Salon",
-    area: "Bhandup",
-    coords: { lat: 19.1511, lng: 72.9372 },
-    categories: ["Hair Studio", "Skin & Facial", "Nails & Spa"],
-    rating: 4.5,
-    reviews: 196,
-    basePrice: 699,
-    distanceKm: 14.9,
-    responseMins: 18,
-    hygieneScore: 93,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: false,
-    slots: ["9:15 AM", "2:15 PM", "7:30 PM"],
-    tags: ["Budget friendly", "Haircut", "Nail care"],
-    specialty: "Affordable hair, skin, waxing and nail care packages.",
-  },
-  {
-    id: "mulund-mirror",
-    name: "Mulund Mirror Studio",
-    area: "Mulund West",
-    coords: { lat: 19.1726, lng: 72.9425 },
-    categories: ["Bridal Beauty", "Hair Studio", "Skin & Facial"],
-    rating: 4.7,
-    reviews: 274,
-    basePrice: 2299,
-    distanceKm: 16.3,
-    responseMins: 17,
-    hygieneScore: 96,
-    homeVisit: true,
-    bridalReady: true,
-    luxury: true,
-    slots: ["11:00 AM", "4:00 PM", "7:45 PM"],
-    tags: ["Bride Pick", "Family booking", "Home visit"],
-    specialty: "Bridal makeup, family styling, skin prep and hair care.",
-  },
-  {
-    id: "kurla-knot",
-    name: "Kurla Knot Beauty Bar",
-    area: "Kurla",
-    coords: { lat: 19.0726, lng: 72.8845 },
-    categories: ["Hair Studio", "Nails & Spa"],
-    rating: 4.3,
-    reviews: 118,
-    basePrice: 649,
-    distanceKm: 8.9,
-    responseMins: 26,
-    hygieneScore: 91,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: false,
-    slots: ["10:00 AM", "1:00 PM", "5:00 PM"],
-    tags: ["Quick cut", "Manicure", "Budget friendly"],
-    specialty: "Quick haircuts, basic manicure, pedicure and grooming.",
-  },
-  {
-    id: "bkc-blush",
-    name: "BKC Blush Atelier",
-    area: "BKC",
-    coords: { lat: 19.0664, lng: 72.8691 },
-    categories: ["Hair Studio", "Skin & Facial", "Bridal Beauty"],
-    rating: 4.9,
-    reviews: 421,
-    basePrice: 2499,
-    distanceKm: 3.6,
-    responseMins: 10,
-    hygieneScore: 99,
-    homeVisit: false,
-    bridalReady: true,
-    luxury: true,
-    slots: ["10:30 AM", "2:00 PM", "6:30 PM"],
-    tags: ["Luxury suite", "Corporate ready", "Bride trial"],
-    specialty: "Luxury hair, skin prep, makeup trials and event styling.",
-  },
-  {
-    id: "santacruz-soft",
-    name: "Santacruz Soft Touch",
-    area: "Santacruz West",
-    coords: { lat: 19.081, lng: 72.8415 },
-    categories: ["Skin & Facial", "Nails & Spa"],
-    rating: 4.6,
-    reviews: 231,
-    basePrice: 999,
-    distanceKm: 2.7,
-    responseMins: 14,
-    hygieneScore: 95,
-    homeVisit: true,
-    bridalReady: false,
-    luxury: false,
-    slots: ["9:30 AM", "12:45 PM", "4:45 PM"],
-    tags: ["Home visit", "Cleanups", "Gel nails"],
-    specialty: "At-home skin care, cleanups, waxing and nail services.",
-  },
-  {
-    id: "khar-kissed",
-    name: "Khar Kissed Salon",
-    area: "Khar West",
-    coords: { lat: 19.0697, lng: 72.8337 },
-    categories: ["Hair Studio", "Skin & Facial", "Nails & Spa"],
-    rating: 4.8,
-    reviews: 377,
-    basePrice: 1499,
-    distanceKm: 1.5,
-    responseMins: 11,
-    hygieneScore: 98,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: true,
-    slots: ["10:15 AM", "3:30 PM", "8:00 PM"],
-    tags: ["Luxury color", "Nails", "Hygiene verified"],
-    specialty: "Premium hair color, skin care, nail art and spa treatments.",
-  },
-  {
-    id: "bandra-east-belle",
-    name: "Bandra East Belle",
-    area: "Bandra East",
-    coords: { lat: 19.0607, lng: 72.8468 },
-    categories: ["Hair Studio", "Bridal Beauty"],
-    rating: 4.5,
-    reviews: 189,
-    basePrice: 1199,
-    distanceKm: 2.4,
-    responseMins: 16,
-    hygieneScore: 94,
-    homeVisit: true,
-    bridalReady: true,
-    luxury: false,
-    slots: ["11:00 AM", "2:30 PM", "5:45 PM"],
-    tags: ["Home visit", "Party makeup", "Hair styling"],
-    specialty: "Party makeup, hair styling, draping and home visits.",
-  },
-  {
-    id: "vile-parle-verve",
-    name: "Vile Parle Verve",
-    area: "Vile Parle East",
-    coords: { lat: 19.0997, lng: 72.8486 },
-    categories: ["Hair Studio", "Skin & Facial"],
-    rating: 4.6,
-    reviews: 205,
-    basePrice: 899,
-    distanceKm: 4.1,
-    responseMins: 19,
-    hygieneScore: 94,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: false,
-    slots: ["9:45 AM", "1:15 PM", "6:15 PM"],
-    tags: ["Hair spa", "Detan", "Airport side"],
-    specialty: "Hair spa, detan, facials and weekday grooming plans.",
-  },
-  {
-    id: "andheri-west-aura",
-    name: "Andheri West Aura",
-    area: "Andheri West",
-    coords: { lat: 19.1363, lng: 72.8277 },
-    categories: ["Hair Studio", "Nails & Spa", "Bridal Beauty"],
-    rating: 4.8,
-    reviews: 448,
-    basePrice: 1599,
-    distanceKm: 6.7,
-    responseMins: 13,
-    hygieneScore: 97,
-    homeVisit: true,
-    bridalReady: true,
-    luxury: true,
-    slots: ["10:00 AM", "12:30 PM", "7:00 PM"],
-    tags: ["Celebrity stylists", "Home visit", "Nail art"],
-    specialty: "Bridal styling, hair color, nail art and at-home services.",
-  },
-  {
-    id: "jogeshwari-jewel",
-    name: "Jogeshwari Jewel Salon",
-    area: "Jogeshwari",
-    coords: { lat: 19.1349, lng: 72.8488 },
-    categories: ["Skin & Facial", "Hair Studio"],
-    rating: 4.4,
-    reviews: 133,
-    basePrice: 699,
-    distanceKm: 7.2,
-    responseMins: 23,
-    hygieneScore: 91,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: false,
-    slots: ["10:45 AM", "2:45 PM", "6:30 PM"],
-    tags: ["Cleanup", "Haircut", "Budget friendly"],
-    specialty: "Cleanups, haircuts, waxing and everyday salon essentials.",
-  },
-  {
-    id: "goregaon-glam",
-    name: "Goregaon Glam Garage",
-    area: "Goregaon West",
-    coords: { lat: 19.1646, lng: 72.8493 },
-    categories: ["Hair Studio", "Nails & Spa", "Skin & Facial"],
-    rating: 4.6,
-    reviews: 239,
-    basePrice: 999,
-    distanceKm: 9.8,
-    responseMins: 18,
-    hygieneScore: 95,
-    homeVisit: true,
-    bridalReady: false,
-    luxury: false,
-    slots: ["9:30 AM", "1:00 PM", "5:30 PM"],
-    tags: ["Home visit", "Hair care", "Pedicure"],
-    specialty: "Hair care, pedicure, facials and home grooming options.",
-  },
-  {
-    id: "malad-moon",
-    name: "Malad Moon Studio",
-    area: "Malad West",
-    coords: { lat: 19.1874, lng: 72.8484 },
-    categories: ["Bridal Beauty", "Hair Studio", "Skin & Facial"],
-    rating: 4.7,
-    reviews: 311,
-    basePrice: 1999,
-    distanceKm: 11.7,
-    responseMins: 15,
-    hygieneScore: 96,
-    homeVisit: true,
-    bridalReady: true,
-    luxury: true,
-    slots: ["10:30 AM", "3:15 PM", "7:15 PM"],
-    tags: ["Bride Pick", "Home visit", "Family packages"],
-    specialty: "Bridal makeup, family grooming, hair and skin packages.",
-  },
-  {
-    id: "kandivali-kraft",
-    name: "Kandivali Kraft Salon",
-    area: "Kandivali West",
-    coords: { lat: 19.2058, lng: 72.8511 },
-    categories: ["Hair Studio", "Nails & Spa"],
-    rating: 4.5,
-    reviews: 207,
-    basePrice: 799,
-    distanceKm: 13.6,
-    responseMins: 21,
-    hygieneScore: 93,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: false,
-    slots: ["9:15 AM", "12:15 PM", "5:45 PM"],
-    tags: ["Haircut", "Gel polish", "Value pick"],
-    specialty: "Haircuts, color touchups, gel polish and spa pedicure.",
-  },
-  {
-    id: "borivali-boulevard",
-    name: "Borivali Boulevard Beauty",
-    area: "Borivali West",
-    coords: { lat: 19.229, lng: 72.8574 },
-    categories: ["Skin & Facial", "Bridal Beauty", "Nails & Spa"],
-    rating: 4.7,
-    reviews: 293,
-    basePrice: 1299,
-    distanceKm: 16.4,
-    responseMins: 16,
-    hygieneScore: 96,
-    homeVisit: true,
-    bridalReady: true,
-    luxury: false,
-    slots: ["10:00 AM", "2:00 PM", "6:00 PM"],
-    tags: ["Bride trial", "Home facial", "Nails"],
-    specialty: "Bridal trials, facials, waxing, nails and home visits.",
-  },
-  {
-    id: "dahisar-dream",
-    name: "Dahisar Dream Salon",
-    area: "Dahisar East",
-    coords: { lat: 19.2575, lng: 72.8682 },
-    categories: ["Hair Studio", "Skin & Facial"],
-    rating: 4.4,
-    reviews: 121,
-    basePrice: 699,
-    distanceKm: 18.2,
-    responseMins: 25,
-    hygieneScore: 91,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: false,
-    slots: ["9:30 AM", "1:45 PM", "7:00 PM"],
-    tags: ["Budget friendly", "Detan", "Haircut"],
-    specialty: "Haircuts, detan, cleanup and practical grooming services.",
-  },
-  {
-    id: "versova-vivid",
-    name: "Versova Vivid Atelier",
-    area: "Versova",
-    coords: { lat: 19.1312, lng: 72.8146 },
-    categories: ["Hair Studio", "Nails & Spa", "Skin & Facial"],
-    rating: 4.8,
-    reviews: 359,
-    basePrice: 1599,
-    distanceKm: 6.5,
-    responseMins: 12,
-    hygieneScore: 98,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: true,
-    slots: ["11:15 AM", "3:00 PM", "8:15 PM"],
-    tags: ["Luxury color", "Nail art", "Skin prep"],
-    specialty: "Creative hair color, nail art, skin prep and spa care.",
-  },
-  {
-    id: "oshiwara-orchid",
-    name: "Oshiwara Orchid Salon",
-    area: "Oshiwara",
-    coords: { lat: 19.1484, lng: 72.8338 },
-    categories: ["Bridal Beauty", "Hair Studio"],
-    rating: 4.6,
-    reviews: 218,
-    basePrice: 1799,
-    distanceKm: 7.8,
-    responseMins: 19,
-    hygieneScore: 94,
-    homeVisit: true,
-    bridalReady: true,
-    luxury: false,
-    slots: ["10:45 AM", "2:15 PM", "6:45 PM"],
-    tags: ["Party makeup", "Home visit", "Hair styling"],
-    specialty: "Party makeup, bridal basics, hair styling and home service.",
-  },
-  {
-    id: "lokhandwala-luxe",
-    name: "Lokhandwala Luxe",
-    area: "Lokhandwala",
-    coords: { lat: 19.1435, lng: 72.824 },
-    categories: ["Hair Studio", "Bridal Beauty", "Nails & Spa"],
-    rating: 4.9,
-    reviews: 512,
-    basePrice: 2999,
-    distanceKm: 7.4,
-    responseMins: 14,
-    hygieneScore: 99,
-    homeVisit: false,
-    bridalReady: true,
-    luxury: true,
-    slots: ["12:00 PM", "4:30 PM", "7:30 PM"],
-    tags: ["Celebrity stylists", "Luxury suite", "Bride trial"],
-    specialty: "Luxury bridal, premium color, nail art and event styling.",
-  },
-  {
-    id: "marol-magic",
-    name: "Marol Magic Salon",
-    area: "Marol",
-    coords: { lat: 19.1165, lng: 72.8795 },
-    categories: ["Hair Studio", "Skin & Facial"],
-    rating: 4.5,
-    reviews: 176,
-    basePrice: 799,
-    distanceKm: 6.7,
-    responseMins: 17,
-    hygieneScore: 93,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: false,
-    slots: ["10:15 AM", "1:30 PM", "5:15 PM"],
-    tags: ["Airport side", "Express facial", "Haircut"],
-    specialty: "Express facials, haircuts, beard care and detan services.",
-  },
-  {
-    id: "chandivali-charm",
-    name: "Chandivali Charm Studio",
-    area: "Chandivali",
-    coords: { lat: 19.1079, lng: 72.9019 },
-    categories: ["Skin & Facial", "Nails & Spa", "Hair Studio"],
-    rating: 4.6,
-    reviews: 224,
-    basePrice: 999,
-    distanceKm: 8.3,
-    responseMins: 13,
-    hygieneScore: 95,
-    homeVisit: true,
-    bridalReady: false,
-    luxury: false,
-    slots: ["9:45 AM", "2:00 PM", "6:30 PM"],
-    tags: ["Home visit", "Facial", "Manicure"],
-    specialty: "Home facials, manicure, hair spa and waxing services.",
-  },
-  {
-    id: "hiranandani-halo",
-    name: "Hiranandani Halo",
-    area: "Hiranandani",
-    coords: { lat: 19.1187, lng: 72.9116 },
-    categories: ["Hair Studio", "Skin & Facial", "Bridal Beauty"],
-    rating: 4.8,
-    reviews: 387,
-    basePrice: 1899,
-    distanceKm: 8.8,
-    responseMins: 11,
-    hygieneScore: 98,
-    homeVisit: false,
-    bridalReady: true,
-    luxury: true,
-    slots: ["11:30 AM", "3:30 PM", "7:00 PM"],
-    tags: ["Luxury color", "Bride prep", "Skin care"],
-    specialty: "Premium hair color, bridal prep, facials and glow treatments.",
-  },
-  {
-    id: "byculla-belle",
-    name: "Byculla Belle Salon",
-    area: "Byculla",
-    coords: { lat: 18.975, lng: 72.8338 },
-    categories: ["Hair Studio", "Skin & Facial"],
-    rating: 4.4,
-    reviews: 149,
-    basePrice: 749,
-    distanceKm: 7.0,
-    responseMins: 22,
-    hygieneScore: 92,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: false,
-    slots: ["10:30 AM", "1:00 PM", "5:00 PM"],
-    tags: ["Cleanup", "Haircut", "Value pick"],
-    specialty: "Simple haircuts, cleanups, waxing and daily beauty care.",
-  },
-  {
-    id: "parel-petal",
-    name: "Parel Petal Beauty",
-    area: "Parel",
-    coords: { lat: 19.009, lng: 72.8376 },
-    categories: ["Bridal Beauty", "Skin & Facial", "Nails & Spa"],
-    rating: 4.7,
-    reviews: 267,
-    basePrice: 1699,
-    distanceKm: 5.2,
-    responseMins: 15,
-    hygieneScore: 96,
-    homeVisit: true,
-    bridalReady: true,
-    luxury: false,
-    slots: ["10:00 AM", "2:45 PM", "6:15 PM"],
-    tags: ["Bride care", "Home visit", "Gel nails"],
-    specialty: "Bridal skin prep, home visits, nails and makeup support.",
-  },
-  {
-    id: "wadala-wink",
-    name: "Wadala Wink Studio",
-    area: "Wadala",
-    coords: { lat: 19.0178, lng: 72.8562 },
-    categories: ["Hair Studio", "Nails & Spa"],
-    rating: 4.5,
-    reviews: 171,
-    basePrice: 699,
-    distanceKm: 6.6,
-    responseMins: 18,
-    hygieneScore: 93,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: false,
-    slots: ["9:30 AM", "12:30 PM", "4:30 PM"],
-    tags: ["Haircut", "Pedicure", "Budget friendly"],
-    specialty: "Haircuts, pedicure, manicure and quick grooming services.",
-  },
-  {
-    id: "kings-circle-kohl",
-    name: "King's Circle Kohl",
-    area: "King's Circle",
-    coords: { lat: 19.0313, lng: 72.8553 },
-    categories: ["Bridal Beauty", "Hair Studio"],
-    rating: 4.6,
-    reviews: 203,
-    basePrice: 1499,
-    distanceKm: 6.4,
-    responseMins: 17,
-    hygieneScore: 94,
-    homeVisit: true,
-    bridalReady: true,
-    luxury: false,
-    slots: ["10:45 AM", "3:15 PM", "6:45 PM"],
-    tags: ["Draping", "Home visit", "Party makeup"],
-    specialty: "Draping, party makeup, hair styling and home appointments.",
-  },
-  {
-    id: "sewri-sage",
-    name: "Sewri Sage Salon",
-    area: "Sewri",
-    coords: { lat: 19.0004, lng: 72.8547 },
-    categories: ["Skin & Facial", "Hair Studio"],
-    rating: 4.3,
-    reviews: 112,
-    basePrice: 649,
-    distanceKm: 6.1,
-    responseMins: 27,
-    hygieneScore: 91,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: false,
-    slots: ["9:15 AM", "1:15 PM", "5:45 PM"],
-    tags: ["Detan", "Haircut", "Value pick"],
-    specialty: "Detan, basic facials, haircuts and everyday grooming.",
-  },
-  {
-    id: "cuffe-couture",
-    name: "Cuffe Couture Salon",
-    area: "Cuffe Parade",
-    coords: { lat: 18.9127, lng: 72.8206 },
-    categories: ["Bridal Beauty", "Hair Studio", "Nails & Spa"],
-    rating: 4.9,
-    reviews: 438,
-    basePrice: 3499,
-    distanceKm: 10.5,
-    responseMins: 19,
-    hygieneScore: 99,
-    homeVisit: true,
-    bridalReady: true,
-    luxury: true,
-    slots: ["11:00 AM", "4:15 PM", "7:30 PM"],
-    tags: ["Luxury suite", "Bride Pick", "Group booking"],
-    specialty: "Premium bridal, luxury hair, group styling and nail care.",
-  },
-  {
-    id: "nariman-noir",
-    name: "Nariman Noir Studio",
-    area: "Nariman Point",
-    coords: { lat: 18.9256, lng: 72.8242 },
-    categories: ["Hair Studio", "Skin & Facial"],
-    rating: 4.7,
-    reviews: 253,
-    basePrice: 1399,
-    distanceKm: 9.8,
-    responseMins: 14,
-    hygieneScore: 96,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: true,
-    slots: ["10:30 AM", "2:30 PM", "6:30 PM"],
-    tags: ["Corporate ready", "Skin prep", "Luxury color"],
-    specialty: "Corporate styling, premium hair care, facials and skin prep.",
-  },
-  {
-    id: "mazgaon-magic",
-    name: "Mazgaon Magic Beauty",
-    area: "Mazgaon",
-    coords: { lat: 18.9681, lng: 72.8438 },
-    categories: ["Hair Studio", "Skin & Facial", "Nails & Spa"],
-    rating: 4.4,
-    reviews: 137,
-    basePrice: 699,
-    distanceKm: 7.8,
-    responseMins: 23,
-    hygieneScore: 92,
-    homeVisit: true,
-    bridalReady: false,
-    luxury: false,
-    slots: ["9:45 AM", "12:45 PM", "6:00 PM"],
-    tags: ["Home visit", "Haircut", "Manicure"],
-    specialty: "Home-friendly grooming, haircuts, manicure and cleanups.",
-  },
-  {
-    id: "grant-road-glow",
-    name: "Grant Road Glow Co.",
-    area: "Grant Road",
-    coords: { lat: 18.9626, lng: 72.8135 },
-    categories: ["Skin & Facial", "Nails & Spa"],
-    rating: 4.5,
-    reviews: 158,
-    basePrice: 799,
-    distanceKm: 7.6,
-    responseMins: 20,
-    hygieneScore: 93,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: false,
-    slots: ["10:00 AM", "1:30 PM", "4:30 PM"],
-    tags: ["Cleanup", "Pedicure", "Budget friendly"],
-    specialty: "Cleanups, facials, pedicure, manicure and waxing services.",
-  },
-  {
-    id: "charni-charm",
-    name: "Charni Charm Salon",
-    area: "Charni Road",
-    coords: { lat: 18.9518, lng: 72.8184 },
-    categories: ["Bridal Beauty", "Hair Studio", "Skin & Facial"],
-    rating: 4.6,
-    reviews: 213,
-    basePrice: 1299,
-    distanceKm: 8.2,
-    responseMins: 18,
-    hygieneScore: 95,
-    homeVisit: true,
-    bridalReady: true,
-    luxury: false,
-    slots: ["11:00 AM", "3:00 PM", "6:00 PM"],
-    tags: ["Home visit", "Draping", "Skin prep"],
-    specialty: "Draping, party makeup, skin prep and hair styling.",
-  },
-  {
-    id: "mahim-muse",
-    name: "Mahim Muse Studio",
-    area: "Mahim",
-    coords: { lat: 19.035, lng: 72.8402 },
-    categories: ["Hair Studio", "Skin & Facial", "Nails & Spa"],
-    rating: 4.5,
-    reviews: 226,
-    basePrice: 899,
-    distanceKm: 3.8,
-    responseMins: 16,
-    hygieneScore: 94,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: false,
-    slots: ["10:30 AM", "2:00 PM", "7:00 PM"],
-    tags: ["Hair spa", "Nails", "Facial"],
-    specialty: "Hair spa, facials, nail care and everyday salon packages.",
-  },
-  {
-    id: "cst-crown",
-    name: "CST Crown Beauty",
-    area: "CST",
-    coords: { lat: 18.9402, lng: 72.8355 },
-    categories: ["Hair Studio", "Skin & Facial"],
-    rating: 4.3,
-    reviews: 104,
-    basePrice: 699,
-    distanceKm: 9.0,
-    responseMins: 28,
-    hygieneScore: 91,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: false,
-    slots: ["9:00 AM", "12:30 PM", "5:30 PM"],
-    tags: ["Express cut", "Cleanup", "Office ready"],
-    specialty: "Quick haircuts, cleanups and commuter-friendly grooming.",
-  },
-  {
-    id: "kalina-kraft",
-    name: "Kalina Kraft Salon",
-    area: "Kalina",
-    coords: { lat: 19.0748, lng: 72.8622 },
-    categories: ["Hair Studio", "Bridal Beauty", "Skin & Facial"],
-    rating: 4.6,
-    reviews: 195,
-    basePrice: 1199,
-    distanceKm: 3.5,
-    responseMins: 15,
-    hygieneScore: 94,
-    homeVisit: true,
-    bridalReady: true,
-    luxury: false,
-    slots: ["9:45 AM", "1:45 PM", "5:45 PM"],
-    tags: ["Home visit", "Party makeup", "Hair care"],
-    specialty: "Party makeup, hair care, skin care and home visits.",
-  },
-  {
-    id: "mankhurd-mint",
-    name: "Mankhurd Mint Beauty",
-    area: "Mankhurd",
-    coords: { lat: 19.0495, lng: 72.9304 },
-    categories: ["Skin & Facial", "Hair Studio"],
-    rating: 4.2,
-    reviews: 98,
-    basePrice: 599,
-    distanceKm: 12.1,
-    responseMins: 29,
-    hygieneScore: 90,
-    homeVisit: true,
-    bridalReady: false,
-    luxury: false,
-    slots: ["10:00 AM", "2:15 PM", "6:15 PM"],
-    tags: ["Home visit", "Budget friendly", "Cleanup"],
-    specialty: "Budget-friendly home facials, cleanup and basic hair care.",
-  },
-  {
-    id: "tilak-nagar-tint",
-    name: "Tilak Nagar Tint Studio",
-    area: "Tilak Nagar",
-    coords: { lat: 19.0688, lng: 72.8984 },
-    categories: ["Hair Studio", "Nails & Spa"],
-    rating: 4.4,
-    reviews: 146,
-    basePrice: 699,
-    distanceKm: 9.7,
-    responseMins: 22,
-    hygieneScore: 92,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: false,
-    slots: ["9:30 AM", "1:00 PM", "5:00 PM"],
-    tags: ["Hair color", "Manicure", "Value pick"],
-    specialty: "Color touchups, haircuts, manicure and simple spa care.",
-  },
-  {
-    id: "malabar-mist",
-    name: "Malabar Mist Salon",
-    area: "Malabar Hill",
-    coords: { lat: 18.9548, lng: 72.7985 },
-    categories: ["Bridal Beauty", "Skin & Facial", "Hair Studio"],
-    rating: 4.9,
-    reviews: 341,
-    basePrice: 2999,
-    distanceKm: 8.4,
-    responseMins: 18,
-    hygieneScore: 99,
-    homeVisit: true,
-    bridalReady: true,
-    luxury: true,
-    slots: ["11:30 AM", "4:00 PM", "7:00 PM"],
-    tags: ["Luxury suite", "Bride trial", "Home visit"],
-    specialty: "Luxury bridal prep, skin treatments, makeup and hair care.",
-  },
-  {
-    id: "walkeshwar-willow",
-    name: "Walkeshwar Willow Beauty",
-    area: "Walkeshwar",
-    coords: { lat: 18.9475, lng: 72.7952 },
-    categories: ["Skin & Facial", "Nails & Spa"],
-    rating: 4.7,
-    reviews: 204,
-    basePrice: 1499,
-    distanceKm: 8.9,
-    responseMins: 19,
-    hygieneScore: 96,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: true,
-    slots: ["10:45 AM", "2:45 PM", "6:45 PM"],
-    tags: ["Premium finish", "Skin care", "Gel nails"],
-    specialty: "Premium facials, gel nails, spa care and polished finishes.",
-  },
-  {
-    id: "evershine-elegance",
-    name: "Evershine Elegance",
-    area: "Evershine Nagar",
-    coords: { lat: 19.1829, lng: 72.8352 },
-    categories: ["Hair Studio", "Bridal Beauty", "Nails & Spa"],
-    rating: 4.6,
-    reviews: 236,
-    basePrice: 1399,
-    distanceKm: 11.5,
-    responseMins: 17,
-    hygieneScore: 95,
-    homeVisit: true,
-    bridalReady: true,
-    luxury: false,
-    slots: ["10:15 AM", "1:45 PM", "6:45 PM"],
-    tags: ["Home visit", "Bride basic", "Nail care"],
-    specialty: "Bridal basics, hair styling, nail care and home visits.",
-  },
-  {
-    id: "magathane-muse",
-    name: "Magathane Muse Salon",
-    area: "Magathane",
-    coords: { lat: 19.2206, lng: 72.8665 },
-    categories: ["Hair Studio", "Skin & Facial"],
-    rating: 4.4,
-    reviews: 129,
-    basePrice: 699,
-    distanceKm: 15.4,
-    responseMins: 24,
-    hygieneScore: 92,
-    homeVisit: false,
-    bridalReady: false,
-    luxury: false,
-    slots: ["9:45 AM", "12:45 PM", "5:45 PM"],
-    tags: ["Haircut", "Detan", "Budget friendly"],
-    specialty: "Haircuts, detan, facials and quick grooming support.",
-  },
-];
-
-// These quick stats make the marketplace feel investor and judge ready.
-const quickStats = [
-  { value: `${salons.length * 40}+`, label: "verified salon partners" },
-  { value: "18 min", label: "average response time" },
-  { value: "4.8/5", label: "city trust score" },
-];
-
 // AI copy is displayed beside the live recommendation result.
 const aiHighlights = [
   "Scores salons by service fit, distance, budget, occasion, availability and trust.",
@@ -1301,7 +115,6 @@ const visualMoments = [
   },
 ];
 
-type Salon = (typeof salons)[number];
 type PaginationItem = number | "ellipsis";
 
 type GeoPoint = {
@@ -1311,6 +124,7 @@ type GeoPoint = {
 
 type Booking = {
   id: string;
+  requestStatus?: string;
   salonId: string;
   salonName: string;
   customerName: string;
@@ -1341,6 +155,13 @@ type RazorpaySuccessResponse = {
   razorpay_order_id: string;
   razorpay_payment_id: string;
   razorpay_signature: string;
+};
+
+type SavedCustomerRequestResponse = {
+  id?: string;
+  status?: string;
+  createdAt?: string;
+  error?: string;
 };
 
 type RazorpayFailureResponse = {
@@ -1616,11 +437,11 @@ function getSalonDistance(salon: Salon, userLocation: GeoPoint | null) {
 }
 
 // Browser coordinates are mapped to the closest marketplace area.
-function findNearestSalon(userLocation: GeoPoint) {
-  return [...salons].sort(
+function findNearestSalon(userLocation: GeoPoint, inventory: Salon[]) {
+  return [...inventory].sort(
     (first, second) =>
       distanceBetweenKm(userLocation, first.coords) - distanceBetweenKm(userLocation, second.coords),
-  )[0] ?? salons[0];
+  )[0];
 }
 
 // Stored demo state is parsed defensively because users can edit localStorage.
@@ -1727,15 +548,33 @@ function getPaginationItems(currentPage: number, totalPages: number) {
   return pages;
 }
 
-export default function SalonMarketplace() {
-  const today = new Date().toISOString().slice(0, 10);
+function getTodayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function isValidPhoneInput(value: string) {
+  return /^[+\d][+\d\s().-]{6,24}$/.test(value.trim());
+}
+
+function isValidOptionalEmailInput(value: string) {
+  return !value.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+type SalonMarketplaceProps = {
+  authUser: AuthUser | null;
+  serviceCategories: ServiceCategory[];
+  salons: Salon[];
+};
+
+export default function SalonMarketplace({ authUser, serviceCategories, salons }: SalonMarketplaceProps) {
   const resultsRef = useRef<HTMLDivElement>(null);
   const [scrollY, setScrollY] = useState(0);
+  const [today, setToday] = useState(() => getTodayIso());
 
   // Search state controls the hero form and the live marketplace filters.
   const [area, setArea] = useState("Bandra West");
   const [service, setService] = useState("Bridal Beauty");
-  const [date, setDate] = useState(today);
+  const [date, setDate] = useState(() => getTodayIso());
   const [budget, setBudget] = useState(6000);
   const [needHomeVisit, setNeedHomeVisit] = useState(false);
   const [sortBy, setSortBy] = useState("ai");
@@ -1745,7 +584,7 @@ export default function SalonMarketplace() {
   const [userLocation, setUserLocation] = useState<GeoPoint | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [locationStatus, setLocationStatus] = useState(
-    "Detecting your nearest Mumbai marketplace area.",
+    "Tap Near me to rank salons by your current location.",
   );
 
   // Product state makes the prototype behave like a real marketplace demo.
@@ -1759,11 +598,27 @@ export default function SalonMarketplace() {
   const [paymentMessage, setPaymentMessage] = useState("");
 
   // Form state is shared by booking, quote and callback actions.
-  const [customerName, setCustomerName] = useState("");
+  const [customerName, setCustomerName] = useState(authUser?.name || "");
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(authUser?.email || "");
   const [selectedTime, setSelectedTime] = useState("");
   const [notes, setNotes] = useState("");
+
+  const serviceOptions = useMemo(
+    () => [
+      { value: "Any service", label: "Any service" },
+      ...serviceCategories.map((category) => ({ value: category.slug, label: category.slug })),
+    ],
+    [serviceCategories],
+  );
+  const quickStats = useMemo(
+    () => [
+      { value: `${salons.length * 40}+`, label: "verified salon partners" },
+      { value: "18 min", label: "average response time" },
+      { value: "4.8/5", label: "city trust score" },
+    ],
+    [salons.length],
+  );
 
   // Request browser location and map it to the nearest salon area in the inventory.
   const requestLocation = useCallback((automatic = false) => {
@@ -1773,7 +628,7 @@ export default function SalonMarketplace() {
     }
 
     if (!window.isSecureContext) {
-      setLocationStatus("Automatic location needs HTTPS or localhost. You can type your area.");
+      setLocationStatus("Location needs HTTPS or localhost. You can type your area.");
       return;
     }
 
@@ -1790,7 +645,14 @@ export default function SalonMarketplace() {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         };
-        const nearestSalon = findNearestSalon(detectedLocation);
+        const nearestSalon = findNearestSalon(detectedLocation, salons);
+
+        if (!nearestSalon) {
+          setIsLocating(false);
+          setLocationStatus("No active salons are available in the database yet.");
+          return;
+        }
+
         const nearestDistance = getSalonDistance(nearestSalon, detectedLocation).toFixed(1);
 
         setUserLocation(detectedLocation);
@@ -1820,7 +682,7 @@ export default function SalonMarketplace() {
         timeout: 10000,
       },
     );
-  }, []);
+  }, [salons]);
 
   // Update one scroll value per animation frame for the parallax image layers.
   useEffect(() => {
@@ -1848,12 +710,16 @@ export default function SalonMarketplace() {
     };
   }, []);
 
-  // Ask for location automatically on supported secure origins such as Vercel or localhost.
+  // Refresh date bounds after hydration so stale static HTML cannot keep past dates selectable.
   useEffect(() => {
-    const locationTimer = window.setTimeout(() => requestLocation(true), 650);
+    const timeoutId = window.setTimeout(() => {
+      const currentToday = getTodayIso();
+      setToday(currentToday);
+      setDate((currentDate) => (currentDate < currentToday ? currentToday : currentDate));
+    }, 0);
 
-    return () => window.clearTimeout(locationTimer);
-  }, [requestLocation]);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   // Restore persisted demo state after hydration to avoid server/client mismatches.
   useEffect(() => {
@@ -1920,7 +786,7 @@ export default function SalonMarketplace() {
         scoreSalon(first, service, budget, needHomeVisit, userLocation)
       );
     });
-  }, [area, budget, needHomeVisit, query, service, sortBy, userLocation]);
+  }, [area, budget, needHomeVisit, query, salons, service, sortBy, userLocation]);
 
   const totalPages = Math.max(1, Math.ceil(filteredSalons.length / SALONS_PER_PAGE));
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -2180,14 +1046,44 @@ export default function SalonMarketplace() {
     });
   }
 
-  // Save verified payments or non-payment requests into local demo history.
-  function saveCustomerRequest(
+  // Save verified payments or non-payment requests into Postgres, then mirror them locally.
+  async function saveCustomerRequest(
     requestSalon: Salon,
     requestType: ModalMode,
     payment?: { amountPaid: number; orderId: string; paymentId: string },
   ) {
+    setPaymentMessage(
+      requestType === "booking" ? "Saving confirmed booking..." : "Saving request securely...",
+    );
+
+    const saveResponse = await fetch("/api/customer-requests", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        salonId: requestSalon.id,
+        customerName: customerName.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
+        date,
+        time: selectedTime,
+        service,
+        notes: notes.trim(),
+        type: requestType,
+        paymentOrderId: payment?.orderId,
+        paymentId: payment?.paymentId,
+        amountPaid: payment?.amountPaid,
+      }),
+    });
+
+    const savedRequest = (await saveResponse.json()) as SavedCustomerRequestResponse;
+
+    if (!saveResponse.ok || savedRequest.error) {
+      throw new Error(savedRequest.error || "Could not save request.");
+    }
+
     const newBooking: Booking = {
-      id: crypto.randomUUID(),
+      id: savedRequest.id || crypto.randomUUID(),
+      requestStatus: savedRequest.status,
       salonId: requestSalon.id,
       salonName: requestSalon.name,
       customerName: customerName.trim(),
@@ -2198,7 +1094,7 @@ export default function SalonMarketplace() {
       service,
       notes: notes.trim(),
       type: requestType,
-      createdAt: new Date().toISOString(),
+      createdAt: savedRequest.createdAt || new Date().toISOString(),
       amountPaid: payment?.amountPaid,
       razorpayOrderId: payment?.orderId,
       razorpayPaymentId: payment?.paymentId,
@@ -2225,9 +1121,10 @@ export default function SalonMarketplace() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        amount: requestSalon.basePrice,
+        salonId: requestSalon.id,
         customerName: customerName.trim(),
-        salonName: requestSalon.name,
+        email: email.trim(),
+        phone: phone.trim(),
         service,
       }),
     });
@@ -2321,14 +1218,40 @@ export default function SalonMarketplace() {
       return;
     }
 
+    if (!isValidPhoneInput(phone)) {
+      setStatusMessage("Please enter a valid phone number.");
+      return;
+    }
+
+    if (!isValidOptionalEmailInput(email)) {
+      setStatusMessage("Please enter a valid email address.");
+      return;
+    }
+
+    if (date < today) {
+      setDate(today);
+      setStatusMessage("Please choose today or a future date.");
+      return;
+    }
+
     if (modalMode !== "booking") {
-      saveCustomerRequest(salonToSubmit, modalMode);
+      try {
+        setIsPaying(true);
+        await saveCustomerRequest(salonToSubmit, modalMode);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Request could not be saved.";
+        setPaymentMessage(message);
+        setStatusMessage(message);
+      } finally {
+        setIsPaying(false);
+      }
       return;
     }
 
     try {
       const payment = await collectRazorpayPayment(salonToSubmit);
-      saveCustomerRequest(salonToSubmit, "booking", payment);
+      await saveCustomerRequest(salonToSubmit, "booking", payment);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Payment could not be completed.";
       setPaymentMessage(message);
@@ -2344,6 +1267,17 @@ export default function SalonMarketplace() {
     setBookings([]);
     setStatusMessage("Demo data cleared. Start a fresh customer journey.");
   }
+
+  useEffect(() => {
+    if (!activeSalon) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [activeSalon]);
 
   const shortlistedSalons = salons.filter((salon) => shortlist.includes(salon.id));
 
@@ -2377,15 +1311,48 @@ export default function SalonMarketplace() {
             <a className="transition hover:text-[#6e3038]" href="#saved">
               Saved
             </a>
+            <a className="transition hover:text-[#6e3038]" href="/admin">
+              Admin
+            </a>
           </div>
 
-          <button
-            className="motion-button inline-flex h-10 shrink-0 items-center gap-2 rounded-full bg-[#2d2525] px-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#6e3038] sm:h-11 sm:px-4"
-            onClick={() => openModal(bestMatch, "booking")}
-          >
-            <Icon name="calendar" className="h-4 w-4" />
-            <span className="hidden min-[380px]:inline">Book now</span>
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {authUser ? (
+              <>
+                {authUser.role === "admin" && (
+                  <a
+                    className="motion-button hidden h-10 items-center rounded-full border border-[#e7d6d0] bg-white px-3 text-sm font-semibold text-[#6e3038] shadow-sm transition hover:border-[#cdaaa1] sm:inline-flex"
+                    href="/admin"
+                  >
+                    Admin
+                  </a>
+                )}
+                <a
+                  aria-label={`Signed in as ${authUser.name}. Sign out`}
+                  className="motion-button grid h-10 w-10 place-items-center rounded-full border border-[#e7d6d0] bg-white text-[#6e3038] shadow-sm transition hover:border-[#cdaaa1]"
+                  href="/api/auth/logout"
+                  title={`Signed in as ${authUser.name}. Sign out`}
+                >
+                  <Icon name="user" className="h-4 w-4" />
+                </a>
+              </>
+            ) : (
+              <a
+                className="motion-button hidden h-10 items-center gap-2 rounded-full border border-[#e7d6d0] bg-white px-3 text-sm font-semibold text-[#6e3038] shadow-sm transition hover:border-[#cdaaa1] sm:inline-flex"
+                href="/api/auth/google/start?role=customer&returnTo=/"
+              >
+                <Icon name="user" className="h-4 w-4" />
+                Sign in
+              </a>
+            )}
+            <button
+              className="motion-button inline-flex h-10 items-center gap-2 rounded-full bg-[#2d2525] px-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#6e3038] sm:h-11 sm:px-4"
+              onClick={() => openModal(bestMatch, "booking")}
+            >
+              <Icon name="calendar" className="h-4 w-4" />
+              <span className="hidden min-[380px]:inline">Book now</span>
+            </button>
+          </div>
         </nav>
       </header>
 
@@ -3166,6 +2133,11 @@ export default function SalonMarketplace() {
                       <span className="block text-[#f5d9d4]">
                         {booking.type} · {booking.service} · {booking.date} at {booking.time}
                       </span>
+                      {booking.requestStatus && (
+                        <span className="mt-1 block text-[#f5d9d4]">
+                          Status {booking.requestStatus}
+                        </span>
+                      )}
                       {booking.razorpayPaymentId && (
                         <span className="mt-1 block text-[#dff3ed]">
                           Paid {formatPrice(booking.amountPaid || 0)} · Payment{" "}
@@ -3204,8 +2176,11 @@ export default function SalonMarketplace() {
       {activeSalon && (
         <div className="modal-backdrop-anime fixed inset-0 z-[80] grid place-items-center bg-[#2d2525]/55 px-3 py-4 opacity-0 backdrop-blur-sm sm:px-4 sm:py-6">
           <form
+            aria-labelledby="booking-dialog-title"
+            aria-modal="true"
             className="modal-content-anime max-h-[92vh] w-full max-w-2xl overflow-auto rounded-lg bg-[#fffdfb] p-4 opacity-0 shadow-2xl sm:p-5"
             onSubmit={submitRequest}
+            role="dialog"
           >
             <div className="flex items-start justify-between gap-4 border-b border-[#efe1dc] pb-4">
               <div>
@@ -3216,7 +2191,9 @@ export default function SalonMarketplace() {
                       ? "Request quote"
                       : "Request callback"}
                 </p>
-                <h2 className="mt-2 text-xl font-semibold sm:text-2xl">{activeSalon.name}</h2>
+                <h2 className="mt-2 text-xl font-semibold sm:text-2xl" id="booking-dialog-title">
+                  {activeSalon.name}
+                </h2>
                 <p className="mt-1 text-sm text-[#776966]">{activeSalon.area}</p>
               </div>
               <button
@@ -3235,6 +2212,7 @@ export default function SalonMarketplace() {
                 <span className="text-sm font-semibold text-[#5e514f]">Name</span>
                 <input
                   className="motion-input mt-2 h-12 w-full rounded-lg border border-[#eadbd6] px-3 outline-none"
+                  autoComplete="name"
                   onChange={(event) => setCustomerName(event.target.value)}
                   placeholder="Your name"
                   required
@@ -3245,7 +2223,9 @@ export default function SalonMarketplace() {
                 <span className="text-sm font-semibold text-[#5e514f]">Phone</span>
                 <input
                   className="motion-input mt-2 h-12 w-full rounded-lg border border-[#eadbd6] px-3 outline-none"
+                  autoComplete="tel"
                   onChange={(event) => setPhone(event.target.value)}
+                  pattern="[+\d][+\d\s().-]{6,24}"
                   placeholder="+91 98765 43210"
                   required
                   type="tel"
@@ -3256,6 +2236,7 @@ export default function SalonMarketplace() {
                 <span className="text-sm font-semibold text-[#5e514f]">Email</span>
                 <input
                   className="motion-input mt-2 h-12 w-full rounded-lg border border-[#eadbd6] px-3 outline-none"
+                  autoComplete="email"
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder="you@example.com"
                   type="email"
