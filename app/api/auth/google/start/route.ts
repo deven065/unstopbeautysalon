@@ -34,7 +34,7 @@ export async function GET(request: Request) {
       value: oauthState.cookieValue,
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production" && process.env.LOCAL_DEV_AUTH_ENABLED !== "true",
       path: "/",
       maxAge: OAUTH_STATE_MAX_AGE_SECONDS,
     });
@@ -42,8 +42,10 @@ export async function GET(request: Request) {
     return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "OAuth is not configured.";
-    const errorUrl = new URL("/", requestUrl.origin);
+    const errorUrl = new URL("/login", requestUrl.origin);
     errorUrl.searchParams.set("authError", message);
+    errorUrl.searchParams.set("role", role);
+    errorUrl.searchParams.set("returnTo", returnTo);
 
     return NextResponse.redirect(errorUrl);
   }

@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
       "'self'",
       "'unsafe-inline'",
       ...(!isProduction ? ["'unsafe-eval'"] : []),
+      "https://accounts.google.com",
       "https://checkout.razorpay.com",
     ];
     const securityHeaders = [
@@ -22,8 +23,8 @@ const nextConfig: NextConfig = {
           "font-src 'self' data:",
           "style-src 'self' 'unsafe-inline'",
           `script-src ${scriptSources.join(" ")}`,
-          "connect-src 'self'",
-          "frame-src https://api.razorpay.com https://checkout.razorpay.com",
+          "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com",
+          "frame-src https://accounts.google.com https://api.razorpay.com https://checkout.razorpay.com",
           "object-src 'none'",
           "upgrade-insecure-requests",
         ].join("; "),

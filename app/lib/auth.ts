@@ -47,6 +47,11 @@ type SessionRow = OAuthUserRow & {
   expires_at: Date;
 };
 
+type PasswordCredentialRow = OAuthUserRow & {
+  password_hash: string;
+  password_salt: string;
+};
+
 const googleJwks = createRemoteJWKSet(new URL("https://www.googleapis.com/oauth2/v3/certs"));
 
 export const SESSION_COOKIE_NAME = "glownest_session";
@@ -70,8 +75,27 @@ function hashToken(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
+function normalizeEmail(email: unknown) {
+  return typeof email === "string" ? email.trim().toLowerCase() : "";
+}
+
 function randomToken(bytes = 32) {
   return crypto.randomBytes(bytes).toString("base64url");
+}
+
+function hashPassword(password: string, salt: string) {
+  return crypto.scryptSync(password, salt, 64).toString("base64url");
+}
+
+function isValidPassword(value: unknown) {
+  return typeof value === "string" && value.length >= 8 && value.length <= 128;
+}
+
+function safeCompare(left: string, right: string) {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+
+  return leftBuffer.length === rightBuffer.length && crypto.timingSafeEqual(leftBuffer, rightBuffer);
 }
 
 function signOAuthState(state: string, role: UserRole, returnTo: string) {
@@ -113,6 +137,16 @@ function roleForEmail(email: string): UserRole {
   return getAdminEmailSet().has(email.toLowerCase()) ? "admin" : "customer";
 }
 
+function resolveRequestedRole(email: string, requestedRole: UserRole | undefined) {
+  if (requestedRole !== "admin") return roleForEmail(email);
+
+  if (!getAdminEmailSet().has(email.toLowerCase())) {
+    throw new Error("Admin accounts can only be created for approved admin emails.");
+  }
+
+  return "admin";
+}
+
 function toAuthUser(row: OAuthUserRow): AuthUser {
   return {
     id: row.id,
@@ -131,6 +165,56 @@ export function getGoogleOAuthConfig(origin?: string) {
     `${origin || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/api/auth/google/callback`;
 
   return { clientId, clientSecret, redirectUri };
+}
+
+export function getGoogleClientId() {
+  return getRequiredEnv("GOOGLE_OAUTH_CLIENT_ID");
+}
+
+export function hasGoogleOAuthCredentials() {
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID?.trim();
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET?.trim();
+
+  return Boolean(
+    clientId &&
+      clientSecret &&
+      !clientId.includes("replace") &&
+      !clientSecret.includes("replace"),
+  );
+}
+
+export function getLocalDevProfile(role: UserRole) {
+  const firstAdminEmail = [...getAdminEmailSet()][0];
+  const email =
+    role === "admin"
+      ? process.env.DEV_ADMIN_EMAIL?.trim() || firstAdminEmail || "admin@glownest.local"
+      : process.env.DEV_CUSTOMER_EMAIL?.trim() || "customer@glownest.local";
+
+  return {
+    sub: `local-dev-${role}-${email.toLowerCase()}`,
+    email: email.toLowerCase(),
+    emailVerified: true,
+    name: role === "admin" ? "GlowNest Admin" : "GlowNest Customer",
+    picture: null,
+  } satisfies GoogleProfile;
+}
+
+function getSeedPassword() {
+  return process.env.LOCAL_AUTH_PASSWORD?.trim() || "";
+}
+
+function getSeedUsers() {
+  const adminEmails = [...getAdminEmailSet()];
+  const customerEmail = normalizeEmail(process.env.DEV_CUSTOMER_EMAIL) || "customer@glownest.local";
+  const users: Array<{ email: string; name: string; role: UserRole }> = [
+    { email: customerEmail, name: "GlowNest Customer", role: "customer" },
+  ];
+
+  for (const email of adminEmails) {
+    users.push({ email, name: "GlowNest Admin", role: "admin" });
+  }
+
+  return users;
 }
 
 export function createOAuthState(role: UserRole, returnTo: string) {
@@ -222,6 +306,16 @@ export async function ensureAuthSchema() {
     )
   `);
 
+  await query(`
+    CREATE TABLE IF NOT EXISTS password_credentials (
+      user_id uuid PRIMARY KEY REFERENCES oauth_users(id) ON DELETE CASCADE,
+      password_hash text NOT NULL,
+      password_salt text NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    )
+  `);
+
   await query("CREATE INDEX IF NOT EXISTS oauth_sessions_user_id_idx ON oauth_sessions(user_id)");
   await query("CREATE INDEX IF NOT EXISTS oauth_sessions_expires_at_idx ON oauth_sessions(expires_at)");
   await query("ALTER TABLE customer_requests ADD COLUMN IF NOT EXISTS customer_user_id uuid REFERENCES oauth_users(id) ON DELETE SET NULL");
@@ -270,10 +364,41 @@ export async function exchangeGoogleCodeForProfile(code: string, origin: string)
   } satisfies GoogleProfile;
 }
 
-export async function upsertOAuthUser(profile: GoogleProfile) {
+export async function verifyGoogleCredential(credential: string) {
+  if (!credential || credential.length > 4096) {
+    throw new Error("Google credential is missing.");
+  }
+
+  const clientId = getGoogleClientId();
+  const { payload } = await jwtVerify(credential, googleJwks, {
+    audience: clientId,
+    issuer: ["https://accounts.google.com", "accounts.google.com"],
+  });
+
+  const email = typeof payload.email === "string" ? payload.email.toLowerCase() : "";
+  const emailVerified = payload.email_verified === true || payload.email_verified === "true";
+
+  if (!payload.sub || !email || !emailVerified) {
+    throw new Error("Google account must have a verified email address.");
+  }
+
+  return {
+    sub: payload.sub,
+    email,
+    emailVerified,
+    name: typeof payload.name === "string" && payload.name.trim() ? payload.name.trim() : email,
+    picture: typeof payload.picture === "string" ? payload.picture : null,
+  } satisfies GoogleProfile;
+}
+
+export async function upsertOAuthUser(
+  profile: GoogleProfile,
+  options: { provider?: string; role?: UserRole } = {},
+) {
   await ensureAuthSchema();
 
-  const role = roleForEmail(profile.email);
+  const provider = options.provider || "google";
+  const role = options.role || roleForEmail(profile.email);
   const result = await query<OAuthUserRow>(
     `
       INSERT INTO oauth_users (
@@ -285,7 +410,7 @@ export async function upsertOAuthUser(profile: GoogleProfile) {
         avatar_url,
         role
       )
-      VALUES ($1, 'google', $2, $3, $4, $5, $6)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       ON CONFLICT (provider, provider_account_id) DO UPDATE SET
         email = EXCLUDED.email,
         name = EXCLUDED.name,
@@ -297,10 +422,146 @@ export async function upsertOAuthUser(profile: GoogleProfile) {
         updated_at = now()
       RETURNING id, email, name, avatar_url, role
     `,
-    [crypto.randomUUID(), profile.sub, profile.email, profile.name, profile.picture, role],
+    [
+      crypto.randomUUID(),
+      provider,
+      profile.sub,
+      profile.email,
+      profile.name,
+      profile.picture,
+      role,
+    ],
   );
 
   return toAuthUser(result.rows[0]);
+}
+
+export async function upsertPasswordUser(input: {
+  email: string;
+  name: string;
+  password: string;
+  role?: UserRole;
+}) {
+  await ensureAuthSchema();
+
+  const email = normalizeEmail(input.email);
+  const name = input.name.trim().replace(/\s+/g, " ").slice(0, 80) || email;
+  const role = resolveRequestedRole(email, input.role);
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error("Enter a valid email address.");
+  }
+
+  if (!isValidPassword(input.password)) {
+    throw new Error("Password must be at least 8 characters.");
+  }
+
+  const userResult = await query<OAuthUserRow>(
+    `
+      INSERT INTO oauth_users (
+        id,
+        provider,
+        provider_account_id,
+        email,
+        name,
+        avatar_url,
+        role
+      )
+      VALUES ($1, 'password', $2, $2, $3, NULL, $4)
+      ON CONFLICT (email) DO UPDATE SET
+        name = EXCLUDED.name,
+        role = CASE
+          WHEN oauth_users.role = 'admin' THEN 'admin'
+          ELSE EXCLUDED.role
+        END,
+        updated_at = now()
+      RETURNING id, email, name, avatar_url, role
+    `,
+    [crypto.randomUUID(), email, name, role],
+  );
+  const user = userResult.rows[0];
+  const salt = randomToken(24);
+  const passwordHash = hashPassword(input.password, salt);
+
+  await query(
+    `
+      INSERT INTO password_credentials (user_id, password_hash, password_salt)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (user_id) DO UPDATE SET
+        password_hash = EXCLUDED.password_hash,
+        password_salt = EXCLUDED.password_salt,
+        updated_at = now()
+    `,
+    [user.id, passwordHash, salt],
+  );
+
+  return toAuthUser(user);
+}
+
+export async function ensureSeedPasswordUsers() {
+  const seedPassword = getSeedPassword();
+
+  if (!seedPassword) return;
+
+  for (const user of getSeedUsers()) {
+    const existing = await query(
+      `
+        SELECT 1
+        FROM oauth_users
+        JOIN password_credentials ON password_credentials.user_id = oauth_users.id
+        WHERE oauth_users.email = $1
+        LIMIT 1
+      `,
+      [user.email],
+    );
+
+    if (existing.rowCount === 0) {
+      await upsertPasswordUser({ ...user, password: seedPassword });
+    }
+  }
+}
+
+export async function authenticatePasswordUser(input: { email: string; password: string }) {
+  await ensureAuthSchema();
+
+  const email = normalizeEmail(input.email);
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !isValidPassword(input.password)) {
+    throw new Error("Invalid email or password.");
+  }
+
+  await ensureSeedPasswordUsers();
+
+  const result = await query<PasswordCredentialRow>(
+    `
+      SELECT
+        oauth_users.id,
+        oauth_users.email,
+        oauth_users.name,
+        oauth_users.avatar_url,
+        oauth_users.role,
+        password_credentials.password_hash,
+        password_credentials.password_salt
+      FROM oauth_users
+      JOIN password_credentials ON password_credentials.user_id = oauth_users.id
+      WHERE oauth_users.email = $1
+      LIMIT 1
+    `,
+    [email],
+  );
+  const row = result.rows[0];
+
+  if (!row) {
+    throw new Error("Invalid email or password.");
+  }
+
+  const candidateHash = hashPassword(input.password, row.password_salt);
+
+  if (!safeCompare(candidateHash, row.password_hash)) {
+    throw new Error("Invalid email or password.");
+  }
+
+  return toAuthUser(row);
 }
 
 export async function createSession(userId: string) {
@@ -378,7 +639,7 @@ export function getSessionCookieOptions(expiresAt: Date) {
     value: "",
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production" && process.env.LOCAL_DEV_AUTH_ENABLED !== "true",
     path: "/",
     expires: expiresAt,
   };

@@ -561,12 +561,18 @@ function isValidOptionalEmailInput(value: string) {
 }
 
 type SalonMarketplaceProps = {
+  authError?: string;
   authUser: AuthUser | null;
   serviceCategories: ServiceCategory[];
   salons: Salon[];
 };
 
-export default function SalonMarketplace({ authUser, serviceCategories, salons }: SalonMarketplaceProps) {
+export default function SalonMarketplace({
+  authError,
+  authUser,
+  serviceCategories,
+  salons,
+}: SalonMarketplaceProps) {
   const resultsRef = useRef<HTMLDivElement>(null);
   const [scrollY, setScrollY] = useState(0);
   const [today, setToday] = useState(() => getTodayIso());
@@ -596,6 +602,7 @@ export default function SalonMarketplace({ authUser, serviceCategories, salons }
   const [statusMessage, setStatusMessage] = useState("Ready to match you with verified salons.");
   const [isPaying, setIsPaying] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState("");
+  const authMessage = authError || "";
 
   // Form state is shared by booking, quote and callback actions.
   const [customerName, setCustomerName] = useState(authUser?.name || "");
@@ -1338,11 +1345,11 @@ export default function SalonMarketplace({ authUser, serviceCategories, salons }
               </>
             ) : (
               <a
-                className="motion-button hidden h-10 items-center gap-2 rounded-full border border-[#e7d6d0] bg-white px-3 text-sm font-semibold text-[#6e3038] shadow-sm transition hover:border-[#cdaaa1] sm:inline-flex"
-                href="/api/auth/google/start?role=customer&returnTo=/"
+                className="motion-button inline-flex h-10 items-center gap-2 rounded-full border border-[#e7d6d0] bg-white px-3 text-sm font-semibold text-[#6e3038] shadow-sm transition hover:border-[#cdaaa1]"
+                href="/login?returnTo=/"
               >
                 <Icon name="user" className="h-4 w-4" />
-                Sign in
+                <span className="hidden min-[420px]:inline">Sign in</span>
               </a>
             )}
             <button
@@ -1355,6 +1362,17 @@ export default function SalonMarketplace({ authUser, serviceCategories, salons }
           </div>
         </nav>
       </header>
+
+      {authMessage && (
+        <section className="border-b border-[#eadbd6] bg-[#fff3ef] px-4 py-3 text-sm font-semibold text-[#8d4a55] sm:px-8">
+          <div className="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p>{authMessage}</p>
+            <a className="underline underline-offset-4" href="/login?returnTo=/">
+              Open sign in
+            </a>
+          </div>
+        </section>
+      )}
 
       {/* Hero gives the product a strong startup-style first impression. */}
       <section id="top" className="hero-cinematic relative isolate overflow-hidden">

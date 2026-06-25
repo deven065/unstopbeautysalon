@@ -4,11 +4,27 @@ import { getMarketplaceData } from "./lib/marketplace-data";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
-  const [marketplaceData, session] = await Promise.all([
+type HomeProps = {
+  searchParams: Promise<{ authError?: string | string[] }>;
+};
+
+function getFirstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function Home({ searchParams }: HomeProps) {
+  const [marketplaceData, session, params] = await Promise.all([
     getMarketplaceData(),
     getCurrentSession(),
+    searchParams,
   ]);
+  const authError = getFirstParam(params.authError);
 
-  return <SalonMarketplace {...marketplaceData} authUser={session?.user || null} />;
+  return (
+    <SalonMarketplace
+      {...marketplaceData}
+      authError={authError}
+      authUser={session?.user || null}
+    />
+  );
 }

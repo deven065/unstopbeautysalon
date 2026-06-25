@@ -30,7 +30,7 @@ async function updateRequestStatus(formData: FormData) {
   const session = await getCurrentSession();
 
   if (session?.user.role !== "admin") {
-    redirect("/api/auth/google/start?role=admin&returnTo=/admin");
+    redirect("/login?role=admin&returnTo=/admin");
   }
 
   const id = String(formData.get("id") || "");
@@ -46,7 +46,7 @@ export default async function AdminPage() {
   const session = await getCurrentSession();
 
   if (!session) {
-    redirect("/api/auth/google/start?role=admin&returnTo=/admin");
+    redirect("/login?role=admin&returnTo=/admin");
   }
 
   if (session.user.role !== "admin") {
