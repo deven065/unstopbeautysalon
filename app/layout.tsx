@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GlowNest Mumbai | AI Beauty Salon Marketplace",
+  title: "GlowNest Mumbai | Beauty Booked Beautifully",
   description:
-    "A pastel, mobile-responsive salon marketplace concept for the SuperXgen AI Startup Buildathon 2026.",
+    "Beauty booked beautifully. Discover verified Mumbai salons, compare pricing, and book with AI-assisted matching.",
 };
 
 export default function RootLayout({

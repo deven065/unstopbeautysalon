@@ -3,7 +3,7 @@
 import Image from "next/image";
 import {
   type CSSProperties,
-  FormEvent,
+  type FormEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -15,6 +15,8 @@ import { animate, stagger, type JSAnimation } from "animejs";
 // The city can be changed here if the buildathon entry pivots to another market.
 const CITY_NAME = "Mumbai";
 const SALONS_PER_PAGE = 9;
+const BRAND_NAME = "GlowNest";
+const BRAND_TAGLINE = "Beauty booked beautifully.";
 
 const imageAssets = {
   hero: "/images/salon-hero-professional.webp",
@@ -53,6 +55,25 @@ const serviceCategories = [
     price: "from Rs. 599",
     tone: "bg-[#e8e1f5]",
   },
+];
+
+const serviceOptions = [
+  { value: "Any service", label: "Any service" },
+  ...serviceCategories.map((category) => ({ value: category.slug, label: category.slug })),
+];
+
+const budgetOptions = [
+  { value: "1000", label: "Under Rs. 1,000" },
+  { value: "2500", label: "Under Rs. 2,500" },
+  { value: "6000", label: "Under Rs. 6,000" },
+  { value: "12000", label: "Under Rs. 12,000" },
+];
+
+const sortOptions = [
+  { value: "ai", label: "AI match" },
+  { value: "rating", label: "Rating" },
+  { value: "price", label: "Price" },
+  { value: "distance", label: "Distance" },
 ];
 
 const needPresets = [
@@ -1437,6 +1458,85 @@ function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: str
   );
 }
 
+function BrandMark({ className = "h-10 w-10" }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 44 44"
+    >
+      <rect
+        height="44"
+        rx="12"
+        width="44"
+        fill="#6e3038"
+      />
+      <rect
+        height="42"
+        rx="11"
+        width="42"
+        x="1"
+        y="1"
+        stroke="#f7d7dd"
+        strokeOpacity="0.42"
+      />
+      <path
+        d="M29.2 17.2a8.8 8.8 0 1 0 1.3 8.7h-7.1"
+        stroke="#fffdfb"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="3"
+      />
+      <path
+        d="M15.2 23.8c4.7-.1 8.4-3 9.5-7.7"
+        stroke="#f4c8d0"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+      <path
+        d="m31.3 9.2.9 2.6 2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9.9-2.6Z"
+        fill="#f8dfe4"
+      />
+    </svg>
+  );
+}
+
+type DropdownOption = {
+  value: string;
+  label: string;
+};
+
+function ProfessionalSelect({
+  ariaLabel,
+  className = "",
+  onChange,
+  options,
+  value,
+}: {
+  ariaLabel: string;
+  className?: string;
+  onChange: (value: string) => void;
+  options: DropdownOption[];
+  value: string;
+}) {
+  return (
+    <select
+      aria-label={ariaLabel}
+      className={`app-select ${className}`}
+      onChange={(event) => onChange(event.target.value)}
+      value={value}
+    >
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 // Currency formatting keeps all prices consistent across cards and summaries.
 function formatPrice(price: number) {
   return `Rs. ${price.toLocaleString("en-IN")}`;
@@ -2154,7 +2254,7 @@ export default function SalonMarketplace() {
           key: order.keyId,
           amount: order.amount,
           currency: order.currency,
-          name: process.env.NEXT_PUBLIC_SITE_NAME || "GlowNest Mumbai",
+          name: process.env.NEXT_PUBLIC_SITE_NAME || `${BRAND_NAME} ${CITY_NAME}`,
           description: `${service} at ${requestSalon.name}`,
           order_id: order.id,
           prefill: {
@@ -2252,16 +2352,14 @@ export default function SalonMarketplace() {
       {/* Header keeps navigation and the main booking action available everywhere. */}
       <header className="sticky top-0 z-50 border-b border-[#eadbd6]/80 bg-[#fff9f7]/90 backdrop-blur-xl">
         <nav className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:gap-4 sm:px-8">
-          <a className="flex min-w-0 items-center gap-3" href="#top" aria-label="GlowNest home">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#f4c8d0] text-sm font-semibold text-[#6e3038] sm:h-10 sm:w-10 sm:text-base">
-              GN
-            </span>
+          <a className="flex min-w-0 items-center gap-3" href="#top" aria-label={`${BRAND_NAME} home`}>
+            <BrandMark className="h-9 w-9 shrink-0 drop-shadow-[0_10px_22px_rgba(110,48,56,0.24)] sm:h-10 sm:w-10" />
             <span className="min-w-0">
-              <span className="block text-base font-semibold tracking-[0.12em] text-[#6e3038] sm:text-lg sm:tracking-[0.16em]">
-                GLOWNEST
+              <span className="block text-base font-semibold tracking-[0.02em] text-[#6e3038] sm:text-lg">
+                {BRAND_NAME}
               </span>
               <span className="block truncate text-xs font-medium text-[#7d6e6b]">
-                {CITY_NAME} Beauty Marketplace
+                {BRAND_TAGLINE}
               </span>
             </span>
           </a>
@@ -2311,7 +2409,7 @@ export default function SalonMarketplace() {
         <div className="mx-auto grid min-h-[calc(100vh-76px)] max-w-7xl content-center gap-10 px-4 py-12 sm:px-8 sm:py-16 lg:grid-cols-[1.04fr_0.96fr] lg:py-20">
           <div className="max-w-3xl">
             <p className="hero-entrance-el opacity-0 mb-5 inline-flex rounded-full border border-[#e6cdc6] bg-white/70 px-4 py-2 text-sm font-semibold text-[#8d4a55] shadow-sm">
-              AI Startup Buildathon 2026 MVP
+              {BRAND_TAGLINE}
             </p>
             <h1
               className="hero-entrance-el opacity-0 max-w-4xl text-4xl font-semibold leading-[1.04] text-[#2d2525] sm:text-6xl lg:text-7xl"
@@ -2353,20 +2451,17 @@ export default function SalonMarketplace() {
                   <span className="block text-xs font-semibold uppercase tracking-[0.16em] text-[#6b8a80]">
                     Service
                   </span>
-                  <select
-                    className="app-select w-full rounded-md text-base font-semibold outline-none"
-                    onChange={(event) => {
-                      setService(event.target.value);
+                  <ProfessionalSelect
+                    ariaLabel="Select service"
+                    className="app-select--hero mt-1 w-full rounded-md text-base font-semibold outline-none"
+                    onChange={(nextService) => {
+                      setService(nextService);
                       setActiveNeed("");
                       setCurrentPage(1);
                     }}
+                    options={serviceOptions}
                     value={service}
-                  >
-                    <option>Any service</option>
-                    {serviceCategories.map((category) => (
-                      <option key={category.slug}>{category.slug}</option>
-                    ))}
-                  </select>
+                  />
                 </span>
               </label>
 
@@ -2713,39 +2808,33 @@ export default function SalonMarketplace() {
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8b7772]">
                 Budget
               </span>
-              <select
-                className="motion-input app-select mt-2 h-12 w-full rounded-lg border border-[#eadbd6] px-3 text-sm outline-none"
-                onChange={(event) => {
-                  setBudget(Number(event.target.value));
+              <ProfessionalSelect
+                ariaLabel="Select budget"
+                className="motion-input mt-2 h-12 w-full rounded-lg border border-[#eadbd6] px-3 text-sm outline-none"
+                onChange={(nextBudget) => {
+                  setBudget(Number(nextBudget));
                   setActiveNeed("");
                   setCurrentPage(1);
                 }}
-                value={budget}
-              >
-                <option value={1000}>Under Rs. 1,000</option>
-                <option value={2500}>Under Rs. 2,500</option>
-                <option value={6000}>Under Rs. 6,000</option>
-                <option value={12000}>Under Rs. 12,000</option>
-              </select>
+                options={budgetOptions}
+                value={String(budget)}
+              />
             </label>
             <label className="block">
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8b7772]">
                 Sort by
               </span>
-              <select
-                className="motion-input app-select mt-2 h-12 w-full rounded-lg border border-[#eadbd6] px-3 text-sm outline-none"
-                onChange={(event) => {
-                  setSortBy(event.target.value);
+              <ProfessionalSelect
+                ariaLabel="Select sort order"
+                className="motion-input mt-2 h-12 w-full rounded-lg border border-[#eadbd6] px-3 text-sm outline-none"
+                onChange={(nextSort) => {
+                  setSortBy(nextSort);
                   setActiveNeed("");
                   setCurrentPage(1);
                 }}
+                options={sortOptions}
                 value={sortBy}
-              >
-                <option value="ai">AI match</option>
-                <option value="rating">Rating</option>
-                <option value="price">Price</option>
-                <option value="distance">Distance</option>
-              </select>
+              />
             </label>
             <label className="flex h-full min-h-16 items-center gap-3 rounded-lg bg-[#edf8f3] px-4 text-sm font-semibold text-[#356c5c]">
               <input
@@ -3101,7 +3190,13 @@ export default function SalonMarketplace() {
             Built for SuperXgen AI Startup Buildathon 2026: live marketplace,
             responsive UI, AI ranking, booking flow and persisted demo actions.
           </p>
-          <p className="font-semibold text-[#6e3038]">GlowNest {CITY_NAME}</p>
+          <div className="flex items-center gap-3 font-semibold text-[#6e3038]">
+            <BrandMark className="h-8 w-8 shrink-0" />
+            <span>
+              {BRAND_NAME} {CITY_NAME}
+              <span className="block text-xs font-medium text-[#8a7b78]">{BRAND_TAGLINE}</span>
+            </span>
+          </div>
         </div>
       </footer>
 
@@ -3169,16 +3264,13 @@ export default function SalonMarketplace() {
               </label>
               <label className="block">
                 <span className="text-sm font-semibold text-[#5e514f]">Time</span>
-                <select
-                  className="motion-input app-select mt-2 h-12 w-full rounded-lg border border-[#eadbd6] px-3 outline-none"
-                  onChange={(event) => setSelectedTime(event.target.value)}
-                  required
+                <ProfessionalSelect
+                  ariaLabel="Select appointment time"
+                  className="motion-input mt-2 h-12 w-full rounded-lg border border-[#eadbd6] px-3 outline-none"
+                  onChange={setSelectedTime}
+                  options={activeSalon.slots.map((slot) => ({ value: slot, label: slot }))}
                   value={selectedTime}
-                >
-                  {activeSalon.slots.map((slot) => (
-                    <option key={slot}>{slot}</option>
-                  ))}
-                </select>
+                />
               </label>
               <label className="block md:col-span-2">
                 <span className="text-sm font-semibold text-[#5e514f]">Notes</span>
