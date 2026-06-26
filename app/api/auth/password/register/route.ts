@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       password: body.password || "",
       role: body.role === "admin" ? "admin" : "customer",
     });
-    const session = await createSession(user.id);
+    const session = await createSession(user.id, user);
     const response = NextResponse.json({ user }, { status: 201 });
 
     response.cookies.set({

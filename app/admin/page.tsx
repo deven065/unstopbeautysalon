@@ -8,6 +8,7 @@ import {
   type CustomerRequestStatus,
 } from "@/app/lib/customer-requests";
 import { getCurrentSession } from "@/app/lib/auth";
+import { getDatabaseSetupIssue } from "@/app/lib/postgres";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,7 @@ async function updateRequestStatus(formData: FormData) {
 
 export default async function AdminPage() {
   const session = await getCurrentSession();
+  const setupIssue = getDatabaseSetupIssue();
 
   if (!session) {
     redirect("/login?role=admin&returnTo=/admin");
@@ -71,7 +73,7 @@ export default async function AdminPage() {
     );
   }
 
-  const requests = await listCustomerRequests(100);
+  const requests = setupIssue ? [] : await listCustomerRequests(100);
 
   return (
     <main className="min-h-screen bg-[#fff9f7] px-4 py-8 text-[#2d2525] sm:px-8">
@@ -85,6 +87,12 @@ export default async function AdminPage() {
             <p className="mt-2 text-sm text-[#665957]">
               Signed in as {session.user.email}
             </p>
+            {setupIssue && (
+              <p className="mt-3 rounded-lg bg-[#fff3ef] px-4 py-3 text-sm font-semibold text-[#8d4a55]">
+                Database is not connected yet, so customer requests will appear here after
+                DATABASE_URL is added in Vercel.
+              </p>
+            )}
           </div>
           <div className="flex gap-3">
             <Link

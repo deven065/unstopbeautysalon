@@ -511,8 +511,6 @@ export async function upsertPasswordUser(input: {
   password: string;
   role?: UserRole;
 }) {
-  await ensureAuthSchema();
-
   const email = normalizeEmail(input.email);
   const name = input.name.trim().replace(/\s+/g, " ").slice(0, 80) || email;
   const role = resolveRequestedRole(email, input.role);
@@ -524,6 +522,18 @@ export async function upsertPasswordUser(input: {
   if (!isValidPassword(input.password)) {
     throw new Error("Password must be at least 8 characters.");
   }
+
+  if (getDatabaseSetupIssue()) {
+    return {
+      id: getStableUserId("password", email),
+      email,
+      name,
+      avatarUrl: null,
+      role,
+    } satisfies AuthUser;
+  }
+
+  await ensureAuthSchema();
 
   const userResult = await query<OAuthUserRow>(
     `
@@ -591,13 +601,29 @@ export async function ensureSeedPasswordUsers() {
 }
 
 export async function authenticatePasswordUser(input: { email: string; password: string }) {
-  await ensureAuthSchema();
-
   const email = normalizeEmail(input.email);
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !isValidPassword(input.password)) {
     throw new Error("Invalid email or password.");
   }
+
+  if (getDatabaseSetupIssue()) {
+    const seedPassword = getSeedPassword();
+
+    if (!seedPassword || !safeCompare(input.password, seedPassword)) {
+      throw new Error("Invalid email or password.");
+    }
+
+    return {
+      id: getStableUserId("password", email),
+      email,
+      name: getAdminEmailSet().has(email) ? "GlowNest Admin" : "GlowNest Customer",
+      avatarUrl: null,
+      role: roleForEmail(email),
+    } satisfies AuthUser;
+  }
+
+  await ensureAuthSchema();
 
   await ensureSeedPasswordUsers();
 
