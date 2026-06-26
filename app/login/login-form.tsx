@@ -60,6 +60,10 @@ export default function LoginForm({
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState(authError || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const googleStartUrl = `/api/auth/google/start?${new URLSearchParams({
+    role,
+    returnTo,
+  }).toString()}`;
 
   useEffect(() => {
     if (!googleClientId || !googleButtonRef.current) return;
@@ -301,6 +305,12 @@ export default function LoginForm({
                 Or continue with Google
                 <span className="h-px flex-1 bg-[#eadbd6]" />
               </div>
+              <a
+                className="mb-3 flex h-12 items-center justify-center rounded-lg border border-[#eadbd6] bg-white px-4 text-sm font-semibold text-[#2d2525] shadow-sm transition hover:border-[#cdaaa1] hover:bg-[#fff9f7]"
+                href={googleStartUrl}
+              >
+                Continue with Google
+              </a>
               <div className="flex min-h-11 justify-center" ref={googleButtonRef} />
             </div>
           )}

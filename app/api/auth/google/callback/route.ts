@@ -45,7 +45,7 @@ export async function GET(request: Request) {
       return response;
     }
 
-    const session = await createSession(user.id);
+    const session = await createSession(user.id, user);
     const response = NextResponse.redirect(new URL(oauthState.returnTo, requestUrl.origin));
 
     response.cookies.set({

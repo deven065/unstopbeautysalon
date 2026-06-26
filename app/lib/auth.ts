@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
-import { createRemoteJWKSet, jwtVerify } from "jose";
-import { query } from "@/app/lib/postgres";
+import { SignJWT, createRemoteJWKSet, jwtVerify } from "jose";
+import { getDatabaseSetupIssue, query } from "@/app/lib/postgres";
 
 export type UserRole = "customer" | "admin";
 
@@ -58,6 +58,7 @@ export const SESSION_COOKIE_NAME = "glownest_session";
 export const OAUTH_STATE_COOKIE_NAME = "glownest_oauth_state";
 export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 14;
 export const OAUTH_STATE_MAX_AGE_SECONDS = 60 * 10;
+const STATELESS_SESSION_ISSUER = "glownest";
 
 let authSchemaReady = false;
 
@@ -73,6 +74,14 @@ function getRequiredEnv(name: string) {
 
 function hashToken(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+function getAuthSecretKey() {
+  return new TextEncoder().encode(getRequiredEnv("AUTH_SECRET"));
+}
+
+function getStableUserId(provider: string, accountId: string) {
+  return crypto.createHash("sha256").update(`${provider}:${accountId}`).digest("hex");
 }
 
 function normalizeEmail(email: unknown) {
@@ -155,6 +164,55 @@ function toAuthUser(row: OAuthUserRow): AuthUser {
     avatarUrl: row.avatar_url,
     role: row.role,
   };
+}
+
+async function createStatelessSession(user: AuthUser) {
+  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
+  const token = await new SignJWT({
+    email: user.email,
+    name: user.name,
+    avatarUrl: user.avatarUrl,
+    role: user.role,
+  })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuer(STATELESS_SESSION_ISSUER)
+    .setSubject(user.id)
+    .setIssuedAt()
+    .setExpirationTime(Math.floor(expiresAt.getTime() / 1000))
+    .sign(getAuthSecretKey());
+
+  return { token, expiresAt };
+}
+
+async function getStatelessSessionByToken(token: string) {
+  try {
+    const { payload } = await jwtVerify(token, getAuthSecretKey(), {
+      issuer: STATELESS_SESSION_ISSUER,
+    });
+
+    if (
+      typeof payload.sub !== "string" ||
+      typeof payload.email !== "string" ||
+      typeof payload.name !== "string" ||
+      (payload.role !== "customer" && payload.role !== "admin") ||
+      typeof payload.exp !== "number"
+    ) {
+      return null;
+    }
+
+    return {
+      user: {
+        id: payload.sub,
+        email: payload.email,
+        name: payload.name,
+        avatarUrl: typeof payload.avatarUrl === "string" ? payload.avatarUrl : null,
+        role: payload.role,
+      },
+      expiresAt: new Date(payload.exp * 1000),
+    } satisfies AuthSession;
+  } catch {
+    return null;
+  }
 }
 
 export function getGoogleOAuthConfig(origin?: string) {
@@ -395,10 +453,21 @@ export async function upsertOAuthUser(
   profile: GoogleProfile,
   options: { provider?: string; role?: UserRole } = {},
 ) {
-  await ensureAuthSchema();
-
   const provider = options.provider || "google";
   const role = options.role || roleForEmail(profile.email);
+
+  if (getDatabaseSetupIssue()) {
+    return {
+      id: getStableUserId(provider, profile.sub),
+      email: profile.email,
+      name: profile.name,
+      avatarUrl: profile.picture,
+      role,
+    } satisfies AuthUser;
+  }
+
+  await ensureAuthSchema();
+
   const result = await query<OAuthUserRow>(
     `
       INSERT INTO oauth_users (
@@ -564,7 +633,12 @@ export async function authenticatePasswordUser(input: { email: string; password:
   return toAuthUser(row);
 }
 
-export async function createSession(userId: string) {
+export async function createSession(userId: string, user?: AuthUser) {
+  if (getDatabaseSetupIssue()) {
+    if (user) return createStatelessSession(user);
+    throw new Error("DATABASE_URL is not configured.");
+  }
+
   await ensureAuthSchema();
 
   const token = randomToken(48);
@@ -583,6 +657,11 @@ export async function createSession(userId: string) {
 
 export async function getSessionByToken(token: string | undefined) {
   if (!token) return null;
+
+  if (getDatabaseSetupIssue()) {
+    return getStatelessSessionByToken(token);
+  }
+
   await ensureAuthSchema();
 
   const result = await query<SessionRow>(
@@ -629,6 +708,8 @@ export async function getCurrentSession() {
 
 export async function deleteSessionByToken(token: string | undefined) {
   if (!token) return;
+  if (getDatabaseSetupIssue()) return;
+
   await ensureAuthSchema();
   await query("DELETE FROM oauth_sessions WHERE session_token_hash = $1", [hashToken(token)]);
 }

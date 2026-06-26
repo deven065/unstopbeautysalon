@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       return jsonError("This Google account is not allowed as an admin.", 403);
     }
 
-    const session = await createSession(user.id);
+    const session = await createSession(user.id, user);
     const response = NextResponse.json({ user });
 
     response.cookies.set({
