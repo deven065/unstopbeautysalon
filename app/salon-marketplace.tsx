@@ -820,7 +820,7 @@ export default function SalonMarketplace({
   useEffect(() => {
     // Nav elements entrance
     animate("header nav > *", {
-      translateY: [-15, 0],
+      translateY: [10, 0],
       opacity: [0, 1],
       easing: "easeOutQuart",
       duration: 800,
@@ -1291,7 +1291,7 @@ export default function SalonMarketplace({
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#fff9f7] text-[#2d2525]">
       {/* Header keeps navigation and the main booking action available everywhere. */}
-      <header className="sticky top-0 z-50 border-b border-[#eadbd6]/80 bg-[#fff9f7]/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-[#eadbd6]/80 bg-[#fff9f7]/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
         <nav className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:gap-4 sm:px-8">
           <a className="flex min-w-0 items-center gap-3" href="#top" aria-label={`${BRAND_NAME} home`}>
             <BrandMark className="h-9 w-9 shrink-0 drop-shadow-[0_10px_22px_rgba(110,48,56,0.24)] sm:h-10 sm:w-10" />
