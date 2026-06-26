@@ -1,6 +1,6 @@
-import DeploymentIssue from "./deployment-issue";
 import SalonMarketplace from "./salon-marketplace";
 import { getCurrentSession } from "./lib/auth";
+import { fallbackMarketplaceData } from "./lib/fallback-marketplace-data";
 import { getMarketplaceData } from "./lib/marketplace-data";
 import { getDatabaseSetupIssue } from "./lib/postgres";
 
@@ -17,26 +17,15 @@ function getFirstParam(value: string | string[] | undefined) {
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
   const setupIssue = getDatabaseSetupIssue();
-
-  if (setupIssue) {
-    return <DeploymentIssue message={setupIssue} />;
-  }
-
-  let marketplaceData: Awaited<ReturnType<typeof getMarketplaceData>>;
-  let session: Awaited<ReturnType<typeof getCurrentSession>>;
+  let marketplaceData: Awaited<ReturnType<typeof getMarketplaceData>> = fallbackMarketplaceData;
+  let session: Awaited<ReturnType<typeof getCurrentSession>> | null = null;
 
   try {
-    [marketplaceData, session] = await Promise.all([
-      getMarketplaceData(),
-      getCurrentSession(),
-    ]);
+    if (!setupIssue) {
+      [marketplaceData, session] = await Promise.all([getMarketplaceData(), getCurrentSession()]);
+    }
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "The deployment could not load marketplace data from Postgres.";
-
-    return <DeploymentIssue message={message} />;
+    console.error("Falling back to bundled marketplace data.", error);
   }
 
   const authError = getFirstParam(params.authError);

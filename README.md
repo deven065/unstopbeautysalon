@@ -20,6 +20,14 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Local Environment Setup
+
+Copy `.env.example` to `.env` and fill in the values before running locally.
+
+- `DATABASE_URL` should point to a local or hosted Postgres database for development.
+- On Vercel, do not deploy with a localhost `DATABASE_URL`.
+- In Vercel project settings, set `DATABASE_URL`, `AUTH_SECRET`, `ADMIN_EMAILS`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_RAZORPAY_KEY_ID`, `RAZORPAY_KEY_ID`, and `RAZORPAY_KEY_SECRET`.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
