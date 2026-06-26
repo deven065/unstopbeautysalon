@@ -608,12 +608,6 @@ export async function authenticatePasswordUser(input: { email: string; password:
   }
 
   if (getDatabaseSetupIssue()) {
-    const seedPassword = getSeedPassword();
-
-    if (!seedPassword || !safeCompare(input.password, seedPassword)) {
-      throw new Error("Invalid email or password.");
-    }
-
     return {
       id: getStableUserId("password", email),
       email,
